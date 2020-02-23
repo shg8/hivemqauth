@@ -23,7 +23,6 @@ import com.hivemq.extension.sdk.api.parameter.*;
 import com.hivemq.extension.sdk.api.services.Services;
 import com.zaxxer.hikari.HikariConfig;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,16 +48,16 @@ public class HiveMQAuthMain implements ExtensionMain {
 
         try {
 
-            File directory = new File(HiveMQAuthMain.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            File directory = new File(HiveMQAuthMain.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParentFile();
             File mysql = new File(directory, "mysql.properties");
             File config = new File(directory, "config.properties");
-            if (createConfig(mysql) | createConfig(config)) {
+            if (createConfig("/mysql.properties", mysql) | createConfig("/config.properties", config)) {
                 log.error("Configuration copied to extension directory. Please edit the configuration and restart.");
                 System.exit(0);
             } else {
                 Properties properties = new Properties();
                 properties.load(FileUtils.openInputStream(config));
-                this.mysqlBackend = new MySQLBackend(properties, new HikariConfig(config.getAbsolutePath()));
+                this.mysqlBackend = new MySQLBackend(properties, new HikariConfig(mysql.getAbsolutePath()));
             }
 
             Services.securityRegistry().setAuthenticatorProvider(new MySQLAuthenticatorProvider(log, mysqlBackend));
@@ -72,9 +71,9 @@ public class HiveMQAuthMain implements ExtensionMain {
 
     }
 
-    private boolean createConfig(File config) throws IOException {
+    private boolean createConfig(String path, File config) throws IOException {
         if (!config.exists()) {
-            FileUtils.copyToFile(getClass().getResourceAsStream("/mysql.properties"), config);
+            FileUtils.copyToFile(getClass().getResourceAsStream(path), config);
             return true;
         }
         return false;
